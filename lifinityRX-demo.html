@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LifinityRX — Backend Infrastructure Demo</title>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --bg:       #080c14;
+  --bg2:      #0d1321;
+  --bg3:      #111827;
+  --bg4:      #151f30;
+  --border:   #1e2d45;
+  --border2:  #243450;
+  --blue:     #3b82f6;
+  --blue-glow:rgba(59,130,246,0.15);
+  --cyan:     #06b6d4;
+  --cyan-glow:rgba(6,182,212,0.15);
+  --green:    #10b981;
+  --green-glow:rgba(16,185,129,0.12);
+  --yellow:   #f59e0b;
+  --yellow-glow:rgba(245,158,11,0.12);
+  --red:      #ef4444;
+  --red-glow: rgba(239,68,68,0.12);
+  --purple:   #8b5cf6;
+  --purple-glow:rgba(139,92,246,0.12);
+  --text:     #f1f5f9;
+  --text2:    #94a3b8;
+  --text3:    #475569;
+  --text4:    #1e3a5f;
+  --r:        10px;
+  --r-sm:     6px;
+  --font-mono: 'Courier New', 'Lucida Console', monospace;
+  --font-ui:  -apple-system, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle grid texture */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ═══════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════ */
+#app {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 220px 1fr;
+  height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════ */
+#topbar {
+  grid-column: 1 / -1;
+  background: rgba(8,12,20,0.95);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+}
+
+.top-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 8px;
+}
+
+.brand-mark {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 18px rgba(59,130,246,0.4);
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+.brand-name span { color: var(--cyan); }
+
+.top-sep {
+  width: 1px; height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.top-env {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 4px;
+  color: var(--green);
+  letter-spacing: 0.5px;
+}
+
+.top-spacer { flex: 1; }
+
+.top-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  letter-spacing: 0.3px;
+}
+
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: livepulse 2s ease-in-out infinite;
+}
+
+@keyframes livepulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+  50% { opacity: 0.5; box-shadow: 0 0 2px var(--green); }
+}
+
+.top-stat {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  padding: 0 8px;
+  border-left: 1px solid var(--border);
+}
+.top-stat b { color: var(--text2); font-weight: 500; }
+
+/* ═══════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════ */
+#sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 12px 16px 6px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--text2);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s;
+  border-radius: 0;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+}
+
+.nav-btn.active {
+  background: rgba(59,130,246,0.08);
+  border-left-color: var(--blue);
+  color: var(--text);
+}
+
+.nav-icon {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(239,68,68,0.15);
+  color: var(--red);
+  font-weight: 600;
+}
+
+.nav-badge.green {
+  background: rgba(16,185,129,0.12);
+  color: var(--green);
+}
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════ */
+#main {
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.tab-pane { display: none; padding: 24px; }
+.tab-pane.active { display: block; }
+
+/* ═══════════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════════ */
+
+/* Page header */
+.page-header {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 3px;
+  font-family: var(--font-mono);
+}
+
+/* Cards */
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-body { padding: 18px; }
+
+/* Grid layouts */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* Metric cards */
+.metric-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+
+.metric-card.blue::before { background: linear-gradient(90deg, var(--blue), transparent); }
+.metric-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+.metric-card.yellow::before { background: linear-gradient(90deg, var(--yellow), transparent); }
+.metric-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+.metric-card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+.metric-card.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+}
+
+.metric-change {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-change.up { color: var(--green); }
+.metric-change.down { color: var(--red); }
+.metric-change.neutral { color: var(--text3); }
+
+/* Status dot */
+.sdot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sdot.green  { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.sdot.yellow { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); animation: livepulse 1.5s ease-in-out infinite; }
+.sdot.red    { background: var(--red); box-shadow: 0 0 5px var(--red); animation: livepulse 0.8s ease-in-out infinite; }
+.sdot.blue   { background: var(--blue); box-shadow: 0 0 5px var(--blue); }
+.sdot.gray   { background: var(--text3); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--r-sm);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+}
+.btn-primary:hover { background: #2563eb; box-shadow: 0 4px 14px rgba(59,130,246,0.4); }
+
+.btn-danger {
+  background: rgba(239,68,68,0.15);
+  color: var(--red);
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+
+.btn-success {
+  background: rgba(16,185,129,0.15);
+  color: var(--green);
+  border: 1px solid rgba(16,185,129,0.3);
+}
+.btn-success:hover { background: rgba(16,185,129,0.25); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.04);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Code block */
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.75;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text2);
+}
+
+.code-block .kw  { color: #f472b6; }   /* keyword */
+.code-block .fn  { color: #60a5fa; }   /* function */
+.code-block .str { color: #86efac; }   /* string */
+.code-block .num { color: #fb923c; }   /* number */
+.code-block .cm  { color: #64748b; font-style: italic; } /* comment */
+.code-block .ty  { color: #67e8f9; }   /* type */
+.code-block .op  { color: #e2e8f0; }   /* operator */
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+}
+.badge-green  { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+.badge-yellow { background: rgba(245,158,11,0.12); color: var(--yellow); border: 1px solid rgba(245,158,11,0.2); }
+.badge-red    { background: rgba(239,68,68,0.12);  color: var(--red);    border: 1px solid rgba(239,68,68,0.2); }
+.badge-blue   { background: rgba(59,130,246,0.12); color: var(--blue);   border: 1px solid rgba(59,130,246,0.2); }
+.badge-cyan   { background: rgba(6,182,212,0.12);  color: var(--cyan);   border: 1px solid rgba(6,182,212,0.2); }
+.badge-purple { background: rgba(139,92,246,0.12); color: var(--purple); border: 1px solid rgba(139,92,246,0.2); }
+.badge-gray   { background: rgba(100,116,139,0.12); color: var(--text3); border: 1px solid rgba(100,116,139,0.2); }
+
+/* Progress bar */
+.progress-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* Log stream */
+.log-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: var(--r-sm);
+  background: rgba(0,0,0,0.2);
+  border-left: 2px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  animation: logIn 0.3s ease;
+}
+
+@keyframes logIn {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.log-entry.success { border-left-color: var(--green); }
+.log-entry.error   { border-left-color: var(--red); }
+.log-entry.warn    { border-left-color: var(--yellow); }
+.log-entry.info    { border-left-color: var(--blue); }
+.log-entry.dim     { border-left-color: var(--border2); opacity: 0.6; }
+
+.log-time { color: var(--text3); flex-shrink: 0; min-width: 70px; }
+.log-type { flex-shrink: 0; min-width: 80px; }
+.log-msg  { color: var(--text2); }
+.log-msg b { color: var(--text); font-weight: 500; }
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════
+   TAB 1: DASHBOARD
+═══════════════════════════════════════════ */
+.activity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(30,45,69,0.6);
+  font-size: 12px;
+  gap: 10px;
+}
+.activity-row:last-child { border-bottom: none; }
+.activity-event  { color: var(--text); font-weight: 500; flex: 1; }
+.activity-source { color: var(--text3); font-family: var(--font-mono); font-size: 10px; min-width: 80px; }
+.activity-time   { color: var(--text3); font-family: var(--font-mono); font-size: 10px; min-width: 50px; text-align: right; }
+
+/* Mini chart */
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 36px;
+}
+.spark-bar {
+  width: 6px;
+  border-radius: 2px 2px 0 0;
+  background: var(--blue);
+  opacity: 0.6;
+  transition: height 0.4s ease, opacity 0.2s;
+}
+.spark-bar:hover { opacity: 1; }
+
+/* System health */
+.health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.2);
+  border-radius: var(--r-sm);
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+}
+.health-name {
+  font-size: 12px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.health-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.health-latency { color: var(--text3); }
+.health-uptime  { color: var(--green); }
+
+/* ═══════════════════════════════════════════
+   TAB 2: BILLING ENGINE
+═══════════════════════════════════════════ */
+.lifecycle-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 24px 0;
+  position: relative;
+}
+
+.lifecycle-node {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.lifecycle-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  font-size: 18px;
+  transition: all 0.4s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.lifecycle-circle.active-state {
+  border-color: var(--blue);
+  background: rgba(59,130,246,0.12);
+  box-shadow: 0 0 20px rgba(59,130,246,0.3);
+}
+.lifecycle-circle.success-state {
+  border-color: var(--green);
+  background: rgba(16,185,129,0.12);
+  box-shadow: 0 0 20px rgba(16,185,129,0.3);
+}
+.lifecycle-circle.error-state {
+  border-color: var(--red);
+  background: rgba(239,68,68,0.12);
+  box-shadow: 0 0 20px rgba(239,68,68,0.3);
+}
+.lifecycle-circle.warn-state {
+  border-color: var(--yellow);
+  background: rgba(245,158,11,0.12);
+  box-shadow: 0 0 20px rgba(245,158,11,0.3);
+}
+
+.lifecycle-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  transition: color 0.3s;
+}
+.lifecycle-sublabel {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.lifecycle-node.active .lifecycle-label { color: var(--text); }
+.lifecycle-node.active .lifecycle-sublabel { opacity: 1; }
+
+.lifecycle-connector {
+  width: 60px;
+  height: 2px;
+  background: var(--border);
+  position: relative;
+  flex-shrink: 0;
+  margin-bottom: 20px;
+}
+.lifecycle-connector-fill {
+  height: 100%;
+  background: var(--blue);
+  width: 0%;
+  transition: width 0.8s ease;
+}
+
+/* Dunning schedule */
+.dunning-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  transition: all 0.3s;
+}
+.dunning-row.active-row {
+  border-color: var(--yellow);
+  background: rgba(245,158,11,0.06);
+}
+.dunning-row.done-row {
+  border-color: rgba(16,185,129,0.3);
+  background: rgba(16,185,129,0.04);
+  opacity: 0.7;
+}
+.dunning-attempt { font-size: 12px; color: var(--text2); font-weight: 500; }
+.dunning-delay   { font-family: var(--font-mono); font-size: 11px; color: var(--yellow); }
+.dunning-result  { font-family: var(--font-mono); font-size: 11px; color: var(--text3); }
+
+/* ═══════════════════════════════════════════
+   TAB 3: WEBHOOKS
+═══════════════════════════════════════════ */
+.event-type-row {
+  display: grid;
+  grid-template-columns: 160px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 6px;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.event-type-row:hover { border-color: var(--border2); }
+.event-type-name { font-family: var(--font-mono); color: var(--text); font-size: 11px; }
+.event-type-desc { color: var(--text3); font-size: 11px; }
+.event-count     { font-family: var(--font-mono); color: var(--blue); font-size: 11px; }
+
+.idempotency-demo {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px;
+}
+
+.idm-key {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  transition: all 0.3s;
+}
+.idm-key.hit {
+  border-color: var(--yellow);
+  background: rgba(245,158,11,0.06);
+}
+.idm-key.miss {
+  border-color: var(--green);
+  background: rgba(16,185,129,0.06);
+}
+.idm-hash { color: var(--text3); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.idm-status { flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════
+   TAB 4: INTEGRATIONS
+═══════════════════════════════════════════ */
+.integration-canvas {
+  position: relative;
+  min-height: 320px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  padding: 24px;
+}
+
+.int-block {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  text-align: center;
+  min-width: 140px;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.int-block.pulsing {
+  border-color: var(--blue);
+  box-shadow: 0 0 20px rgba(59,130,246,0.2);
+}
+.int-block.success-flash {
+  border-color: var(--green);
+  box-shadow: 0 0 20px rgba(16,185,129,0.25);
+}
+.int-block.error-flash {
+  border-color: var(--red);
+  box-shadow: 0 0 20px rgba(239,68,68,0.25);
+}
+
+.int-icon-large { font-size: 28px; margin-bottom: 8px; }
+.int-name-large { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.int-version    { font-size: 10px; color: var(--text3); font-family: var(--font-mono); }
+
+.int-flow-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0;
+}
+
+.flow-arrow {
+  font-size: 20px;
+  color: var(--text3);
+  text-align: center;
+  transition: color 0.3s;
+}
+.flow-arrow.active { color: var(--blue); }
+.flow-arrow.success-arrow { color: var(--green); }
+
+.flow-packet {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  pointer-events: none;
+  opacity: 0;
+  transition: none;
+}
+
+.data-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(30,45,69,0.5);
+  font-size: 11px;
+}
+.data-field-row:last-child { border-bottom: none; }
+.data-field-key { color: var(--text3); font-family: var(--font-mono); }
+.data-field-val { color: var(--text2); font-family: var(--font-mono); }
+.data-field-val.highlight { color: var(--cyan); }
+
+/* ═══════════════════════════════════════════
+   TAB 5: ARCHITECTURE
+═══════════════════════════════════════════ */
+.arch-layer {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.arch-layer::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: var(--r) 0 0 var(--r);
+}
+
+.arch-layer.api::before    { background: var(--blue); }
+.arch-layer.service::before { background: var(--cyan); }
+.arch-layer.integration::before { background: var(--purple); }
+.arch-layer.queue::before  { background: var(--yellow); }
+.arch-layer.data::before   { background: var(--green); }
+
+.arch-layer-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arch-components {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.arch-chip {
+  padding: 4px 10px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text2);
+}
+
+.arch-arrows {
+  display: flex;
+  justify-content: center;
+  color: var(--text3);
+  font-size: 11px;
+  padding: 2px 0;
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════
+   TAB 6: EXECUTION PLAN
+═══════════════════════════════════════════ */
+.timeline {
+  position: relative;
+  padding-left: 36px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--blue), var(--cyan), var(--green));
+  border-radius: 1px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -28px;
+  top: 16px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border2);
+  transition: all 0.3s;
+}
+
+.timeline-item.done::before {
+  background: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+
+.timeline-item.active-phase::before {
+  background: var(--blue);
+  border-color: var(--blue);
+  box-shadow: 0 0 10px var(--blue);
+  animation: livepulse 1.5s infinite;
+}
+
+.timeline-item.upcoming::before {
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+
+.timeline-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 18px 20px;
+  transition: all 0.3s;
+}
+
+.timeline-item.active-phase .timeline-card {
+  border-color: rgba(59,130,246,0.35);
+  box-shadow: 0 4px 24px rgba(59,130,246,0.1);
+}
+
+.timeline-phase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.timeline-phase-num {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  letter-spacing: 0.5px;
+}
+
+.timeline-phase-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.timeline-phase-duration {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+}
+
+.timeline-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.timeline-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.task-check {
+  width: 16px; height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.task-check.checked {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.task-check.in-progress {
+  background: rgba(59,130,246,0.2);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.deliverable-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.deliverable-chip {
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-8  { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.mt-8   { margin-top: 8px; }
+.mt-12  { margin-top: 12px; }
+.mt-16  { margin-top: 16px; }
+.mb-8   { margin-bottom: 8px; }
+.mb-12  { margin-bottom: 12px; }
+.mb-16  { margin-bottom: 16px; }
+.w-full { width: 100%; }
+.text-mono { font-family: var(--font-mono); }
+.text-sm { font-size: 11px; }
+.text-xs { font-size: 10px; }
+.text-muted { color: var(--text3); }
+.text-right { text-align: right; }
+.opacity-0 { opacity: 0; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══════════ TOPBAR ═══════════ -->
+  <header id="topbar">
+    <div class="top-brand">
+      <div class="brand-mark">⚕</div>
+      <div class="brand-name">Lifinity<span>RX</span></div>
+    </div>
+    <div class="top-sep"></div>
+    <div class="top-env">PRODUCTION SIM</div>
+    <div class="top-spacer"></div>
+    <div class="top-stat">Events/sec <b id="stat-eps">0</b></div>
+    <div class="top-stat">Queue depth <b id="stat-queue">0</b></div>
+    <div class="top-stat">Errors/min <b id="stat-errs" style="color:var(--green)">0</b></div>
+    <div class="top-sep"></div>
+    <div class="top-live"><div class="live-dot"></div>LIVE</div>
+  </header>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <nav id="sidebar">
+    <div class="nav-section-label">Overview</div>
+    <button class="nav-btn active" onclick="switchTab('dashboard', this)">
+      <span class="nav-icon">▦</span> Dashboard
+    </button>
+
+    <div class="nav-section-label">Engine</div>
+    <button class="nav-btn" onclick="switchTab('billing', this)">
+      <span class="nav-icon">◎</span> Billing Engine
+      <span class="nav-badge" id="badge-failed">0</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('webhooks', this)">
+      <span class="nav-icon">⚡</span> Webhooks &amp; Events
+      <span class="nav-badge green" id="badge-events">0</span>
+    </button>
+
+    <div class="nav-section-label">Platform</div>
+    <button class="nav-btn" onclick="switchTab('integrations', this)">
+      <span class="nav-icon">⇄</span> Integrations
+    </button>
+
+    <div class="nav-section-label">Documentation</div>
+    <button class="nav-btn" onclick="switchTab('architecture', this)">
+      <span class="nav-icon">❖</span> Architecture
+    </button>
+    <button class="nav-btn" onclick="switchTab('execution', this)">
+      <span class="nav-icon">▸</span> Execution Plan
+    </button>
+  </nav>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main id="main">
+
+    <!-- ══════════════════════════════════
+         TAB 1: DASHBOARD
+    ══════════════════════════════════ -->
+    <div id="tab-dashboard" class="tab-pane active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">System Dashboard</div>
+          <div class="page-subtitle">Real-time platform health · auto-refreshing every 3s</div>
+        </div>
+        <div class="flex gap-8 items-center">
+          <span class="badge badge-green"><span class="sdot green"></span> All systems operational</span>
+        </div>
+      </div>
+
+      <!-- Metrics grid -->
+      <div class="grid-4 mb-16" id="metrics-grid">
+        <div class="metric-card blue">
+          <div class="metric-label">Active Subscriptions</div>
+          <div class="metric-value" id="m-active">2,847</div>
+          <div class="metric-change up">↑ +12 today</div>
+        </div>
+        <div class="metric-card red">
+          <div class="metric-label">Failed Payments</div>
+          <div class="metric-value" id="m-failed">43</div>
+          <div class="metric-change down">↑ +3 last hour</div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">Recovery Rate</div>
+          <div class="metric-value" id="m-recovery">68%</div>
+          <div class="metric-change up">↑ +5% vs last week</div>
+        </div>
+        <div class="metric-card cyan">
+          <div class="metric-label">API Events / sec</div>
+          <div class="metric-value" id="m-eps">24.3</div>
+          <div class="metric-change neutral">→ stable</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-16">
+        <!-- Activity feed -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="sdot green"></span> Live Activity Feed</div>
+            <span class="badge badge-blue text-mono" id="feed-count">0 events</span>
+          </div>
+          <div class="card-body" style="padding: 12px 16px;">
+            <div id="activity-feed" style="max-height: 240px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <!-- System health -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">◉ Service Health</div>
+          </div>
+          <div class="card-body">
+            <div class="health-row">
+              <div class="health-name"><span class="sdot green"></span> Stripe API</div>
+              <div class="health-right">
+                <span class="health-latency" id="h-stripe">48ms</span>
+                <span class="health-uptime">99.98%</span>
+                <span class="badge badge-green">UP</span>
+              </div>
+            </div>
+            <div class="health-row">
+              <div class="health-name"><span class="sdot green"></span> GoHighLevel</div>
+              <div class="health-right">
+                <span class="health-latency" id="h-ghl">112ms</span>
+                <span class="health-uptime">99.91%</span>
+                <span class="badge badge-green">UP</span>
+              </div>
+            </div>
+            <div class="health-row">
+              <div class="health-name"><span class="sdot green"></span> Checkout Champ</div>
+              <div class="health-right">
+                <span class="health-latency" id="h-cc">73ms</span>
+                <span class="health-uptime">99.95%</span>
+                <span class="badge badge-green">UP</span>
+              </div>
+            </div>
+            <div class="health-row">
+              <div class="health-name"><span class="sdot green"></span> Redis Queue</div>
+              <div class="health-right">
+                <span class="health-latency" id="h-redis">3ms</span>
+                <span class="health-uptime">100.0%</span>
+                <span class="badge badge-green">UP</span>
+              </div>
+            </div>
+            <div class="health-row" style="margin-bottom:0">
+              <div class="health-name"><span class="sdot" id="h-wh-dot" style="background:var(--green);box-shadow:0 0 5px var(--green)"></span> Webhook Processor</div>
+              <div class="health-right">
+                <span class="health-latency" id="h-wh">18ms</span>
+                <span class="health-uptime" id="h-wh-up">99.99%</span>
+                <span class="badge badge-green" id="h-wh-badge">UP</span>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+            <!-- Mini sparkline -->
+            <div class="flex justify-between items-center mb-8">
+              <span class="text-sm text-muted">Events last 14 intervals</span>
+              <span class="text-xs text-muted text-mono" id="spark-total">— total</span>
+            </div>
+            <div class="sparkline" id="sparkline"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Queue stats -->
+      <div class="grid-4">
+        <div class="metric-card yellow">
+          <div class="metric-label">Queue Pending</div>
+          <div class="metric-value" id="m-pending">0</div>
+          <div class="metric-change neutral text-mono" style="font-size:10px">RETRY_PAYMENT · SYNC_GHL</div>
+        </div>
+        <div class="metric-card blue">
+          <div class="metric-label">Processed Today</div>
+          <div class="metric-value" id="m-processed">1,204</div>
+          <div class="metric-change up">↑ 94% success rate</div>
+        </div>
+        <div class="metric-card purple">
+          <div class="metric-label">Idempotency Hits</div>
+          <div class="metric-value" id="m-idm">187</div>
+          <div class="metric-change neutral">duplicates blocked</div>
+        </div>
+        <div class="metric-card green">
+          <div class="metric-label">Dunning Recovered</div>
+          <div class="metric-value" id="m-recovered">29</div>
+          <div class="metric-change up">↑ $2,318 saved</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         TAB 2: BILLING ENGINE
+    ══════════════════════════════════ -->
+    <div id="tab-billing" class="tab-pane">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Billing Engine</div>
+          <div class="page-subtitle">Subscription lifecycle · dunning logic · smart retry</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-danger" id="btn-fail" onclick="triggerFailure()">⚠ Trigger Failure</button>
+          <button class="btn btn-primary" id="btn-retry" onclick="runRetryCycle()" disabled>↻ Run Retry Cycle</button>
+        </div>
+      </div>
+
+      <!-- Lifecycle track -->
+      <div class="card mb-16">
+        <div class="card-header">
+          <div class="card-title">◎ Subscription Lifecycle</div>
+          <div id="lifecycle-status" class="badge badge-green">ACTIVE</div>
+        </div>
+        <div class="card-body">
+          <div class="lifecycle-track" id="lifecycle-track">
+            <div class="lifecycle-node" id="lc-active">
+              <div class="lifecycle-circle active-state" id="lc-circle-active">💳</div>
+              <div class="lifecycle-label">ACTIVE</div>
+              <div class="lifecycle-sublabel" id="lc-sub-active">billing cycle running</div>
+            </div>
+            <div class="lifecycle-connector"><div class="lifecycle-connector-fill" id="lc-conn-1"></div></div>
+            <div class="lifecycle-node" id="lc-failed">
+              <div class="lifecycle-circle" id="lc-circle-failed">⛔</div>
+              <div class="lifecycle-label">FAILED</div>
+              <div class="lifecycle-sublabel" id="lc-sub-failed">payment declined</div>
+            </div>
+            <div class="lifecycle-connector"><div class="lifecycle-connector-fill" id="lc-conn-2"></div></div>
+            <div class="lifecycle-node" id="lc-dunning">
+              <div class="lifecycle-circle" id="lc-circle-dunning">🔄</div>
+              <div class="lifecycle-label">DUNNING</div>
+              <div class="lifecycle-sublabel" id="lc-sub-dunning">retry queue</div>
+            </div>
+            <div class="lifecycle-connector"><div class="lifecycle-connector-fill" id="lc-conn-3"></div></div>
+            <div class="lifecycle-node" id="lc-recovered">
+              <div class="lifecycle-circle" id="lc-circle-recovered">✅</div>
+              <div class="lifecycle-label">RECOVERED</div>
+              <div class="lifecycle-sublabel" id="lc-sub-recovered">payment captured</div>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="flex justify-between items-center mb-8">
+            <span class="text-sm text-muted text-mono" id="lc-progress-label">Current state: ACTIVE · billing cycle running</span>
+            <span class="text-xs text-muted text-mono" id="lc-timer"></span>
+          </div>
+          <div class="progress-track" style="height:6px">
+            <div class="progress-fill" id="lc-progress" style="width:25%; background: var(--blue)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Dunning schedule -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⏱ Smart Dunning Schedule</div>
+            <span class="badge badge-blue text-mono" id="dunning-attempt-badge">0 / 3</span>
+          </div>
+          <div class="card-body">
+            <div class="dunning-row" id="dun-0">
+              <div>
+                <div class="dunning-attempt">Initial Failure</div>
+                <div class="text-xs text-muted mt-8 text-mono">card_declined · payment_intent</div>
+              </div>
+              <div class="dunning-delay">T+0h</div>
+              <div class="dunning-result" id="dun-0-r">→ PAST_DUE</div>
+            </div>
+            <div class="dunning-row" id="dun-1">
+              <div>
+                <div class="dunning-attempt">Retry Attempt 1</div>
+                <div class="text-xs text-muted mt-8 text-mono">exponential backoff</div>
+              </div>
+              <div class="dunning-delay">T+24h</div>
+              <div class="dunning-result" id="dun-1-r">—</div>
+            </div>
+            <div class="dunning-row" id="dun-2">
+              <div>
+                <div class="dunning-attempt">Retry Attempt 2</div>
+                <div class="text-xs text-muted mt-8 text-mono">alternate gateway</div>
+              </div>
+              <div class="dunning-delay">T+72h</div>
+              <div class="dunning-result" id="dun-2-r">—</div>
+            </div>
+            <div class="dunning-row" id="dun-3">
+              <div>
+                <div class="dunning-attempt">Retry Attempt 3</div>
+                <div class="text-xs text-muted mt-8 text-mono">final attempt</div>
+              </div>
+              <div class="dunning-delay">T+7d</div>
+              <div class="dunning-result" id="dun-3-r">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Billing log -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 Billing Event Log</div>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="clearBillingLog()">Clear</button>
+          </div>
+          <div class="card-body" style="padding: 12px 16px;">
+            <div class="log-stream" id="billing-log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         TAB 3: WEBHOOKS & EVENTS
+    ══════════════════════════════════ -->
+    <div id="tab-webhooks" class="tab-pane">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Webhooks &amp; Events</div>
+          <div class="page-subtitle">Idempotent processing · live event stream · retry queue</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-ghost" onclick="sendWebhook('payment_success')">➤ payment_success</button>
+          <button class="btn btn-ghost" onclick="sendWebhook('payment_failed')">➤ payment_failed</button>
+          <button class="btn btn-ghost" onclick="sendWebhook('subscription_updated')">➤ sub_updated</button>
+          <button class="btn btn-danger" onclick="sendDuplicate()">⟳ Send Duplicate</button>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-16">
+        <!-- Event stream -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><span class="sdot green"></span> Live Event Stream</div>
+            <span class="badge badge-blue text-mono" id="wh-count">0 total</span>
+          </div>
+          <div class="card-body" style="padding: 12px 16px;">
+            <div class="log-stream" id="webhook-log"></div>
+          </div>
+        </div>
+
+        <!-- Event counters -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">◈ Event Types</div>
+          </div>
+          <div class="card-body">
+            <div class="event-type-row">
+              <span class="event-type-name">payment_success</span>
+              <span class="event-type-desc">Stripe payment confirmed</span>
+              <span class="badge badge-green">ACTIVE</span>
+              <span class="event-count" id="ec-success">0</span>
+            </div>
+            <div class="event-type-row">
+              <span class="event-type-name">payment_failed</span>
+              <span class="event-type-desc">Initiates dunning flow</span>
+              <span class="badge badge-red">ACTIVE</span>
+              <span class="event-count" id="ec-failed">0</span>
+            </div>
+            <div class="event-type-row">
+              <span class="event-type-name">subscription_updated</span>
+              <span class="event-type-desc">State machine transition</span>
+              <span class="badge badge-blue">ACTIVE</span>
+              <span class="event-count" id="ec-updated">0</span>
+            </div>
+            <div class="event-type-row" style="margin-bottom:0">
+              <span class="event-type-name">idempotency_hit</span>
+              <span class="event-type-desc">Duplicate blocked</span>
+              <span class="badge badge-yellow">ACTIVE</span>
+              <span class="event-count" id="ec-idm">0</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Retry queue -->
+            <div class="flex justify-between items-center mb-8">
+              <span class="text-sm" style="color:var(--text2); font-weight:600;">Retry Queue</span>
+              <span class="badge badge-yellow text-mono" id="retry-q-size">0 jobs</span>
+            </div>
+            <div id="retry-queue-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Idempotency demo -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔒 Idempotency Store — Duplicate Prevention</div>
+          <span class="text-xs text-muted text-mono">sha256(source + ":" + eventId) · TTL 24h</span>
+        </div>
+        <div class="card-body">
+          <div id="idm-store" style="display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto;"></div>
+          <div class="text-xs text-muted text-mono mt-8">Duplicate events return HTTP 200 immediately — zero reprocessing</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         TAB 4: INTEGRATIONS
+    ══════════════════════════════════ -->
+    <div id="tab-integrations" class="tab-pane">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Platform Integrations</div>
+          <div class="page-subtitle">Stripe · GoHighLevel V2 · Checkout Champ · typed adapter layer</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-primary" id="btn-sync" onclick="runIntegrationFlow()">▶ Simulate Full Sync</button>
+        </div>
+      </div>
+
+      <!-- Integration flow -->
+      <div class="card mb-16">
+        <div class="card-header">
+          <div class="card-title">⇄ Data Flow Simulation</div>
+          <div id="int-status-badge" class="badge badge-gray">IDLE</div>
+        </div>
+        <div class="card-body">
+          <div class="int-flow-grid">
+            <div class="int-block" id="int-cc">
+              <div class="int-icon-large">🛒</div>
+              <div class="int-name-large">Checkout Champ</div>
+              <div class="int-version">Konnektive API</div>
+              <div class="mt-8">
+                <div class="badge badge-green" id="int-cc-status">CONNECTED</div>
+              </div>
+            </div>
+            <div class="flow-arrow" id="arr-1">→</div>
+            <div class="int-block" id="int-mw">
+              <div class="int-icon-large">⚙</div>
+              <div class="int-name-large">Middleware</div>
+              <div class="int-version">Node.js / TypeScript</div>
+              <div class="mt-8">
+                <div class="badge badge-blue" id="int-mw-status">CORE</div>
+              </div>
+            </div>
+            <div class="flow-arrow" id="arr-2">→</div>
+            <div style="display:flex;flex-direction:column;gap:12px;flex:1;">
+              <div class="int-block" id="int-stripe">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:20px;">💳</span>
+                  <div>
+                    <div class="int-name-large">Stripe</div>
+                    <div class="int-version">Billing API v2023</div>
+                  </div>
+                  <div class="badge badge-green ml-auto" id="int-stripe-status">UP</div>
+                </div>
+              </div>
+              <div class="int-block" id="int-ghl">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span style="font-size:20px;">📊</span>
+                  <div>
+                    <div class="int-name-large">GoHighLevel</div>
+                    <div class="int-version">V2 API · CRM</div>
+                  </div>
+                  <div class="badge badge-green ml-auto" id="int-ghl-status">UP</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Integration log -->
+          <div class="divider"></div>
+          <div class="log-stream" id="int-log" style="max-height:200px;"></div>
+        </div>
+      </div>
+
+      <!-- Data normalization -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📥 Checkout Champ Payload</div>
+            <span class="badge badge-gray">RAW INPUT</span>
+          </div>
+          <div class="card-body">
+            <div class="data-field-row"><span class="data-field-key">orderId</span><span class="data-field-val">CC-2024-88742</span></div>
+            <div class="data-field-row"><span class="data-field-key">customerId</span><span class="data-field-val">CC_CUST_44821</span></div>
+            <div class="data-field-row"><span class="data-field-key">productId</span><span class="data-field-val">prod_ed_monthly</span></div>
+            <div class="data-field-row"><span class="data-field-key">campaignId</span><span class="data-field-val">camp_q1_mens</span></div>
+            <div class="data-field-row"><span class="data-field-key">orderTotal</span><span class="data-field-val highlight">$79.99</span></div>
+            <div class="data-field-row"><span class="data-field-key">orderStatus</span><span class="data-field-val highlight">complete</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📤 Normalized Internal Schema</div>
+            <span class="badge badge-blue">TRANSFORMED</span>
+          </div>
+          <div class="card-body">
+            <div class="data-field-row"><span class="data-field-key">patientId</span><span class="data-field-val highlight">uuid-f47ac10b-58cc</span></div>
+            <div class="data-field-row"><span class="data-field-key">planId</span><span class="data-field-val highlight">mens-health-monthly</span></div>
+            <div class="data-field-row"><span class="data-field-key">stripeCustomerId</span><span class="data-field-val">cus_Pq8k1mN3xTzL7w</span></div>
+            <div class="data-field-row"><span class="data-field-key">subscriptionState</span><span class="data-field-val highlight">ACTIVE</span></div>
+            <div class="data-field-row"><span class="data-field-key">mrr</span><span class="data-field-val highlight">$79.99</span></div>
+            <div class="data-field-row"><span class="data-field-key">sourceplatform</span><span class="data-field-val">checkout_champ</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         TAB 5: ARCHITECTURE
+    ══════════════════════════════════ -->
+    <div id="tab-architecture" class="tab-pane">
+      <div class="page-header">
+        <div>
+          <div class="page-title">System Architecture</div>
+          <div class="page-subtitle">Node.js · TypeScript · Event-driven · HIPAA-aware</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-16">
+        <!-- Layer diagram -->
+        <div>
+          <div class="arch-layer api">
+            <div class="arch-layer-title">🌐 API Layer</div>
+            <div class="arch-components">
+              <div class="arch-chip">Express 4.18</div>
+              <div class="arch-chip">TypeScript strict</div>
+              <div class="arch-chip">Zod validation</div>
+              <div class="arch-chip">JWT auth</div>
+              <div class="arch-chip">Rate limiting</div>
+            </div>
+          </div>
+          <div class="arch-arrows">↓ request routing ↓</div>
+          <div class="arch-layer service">
+            <div class="arch-layer-title">⚙ Services Layer</div>
+            <div class="arch-components">
+              <div class="arch-chip">PatientService</div>
+              <div class="arch-chip">SubscriptionService</div>
+              <div class="arch-chip">BillingService</div>
+              <div class="arch-chip">DunningEngine</div>
+              <div class="arch-chip">StateMachine</div>
+            </div>
+          </div>
+          <div class="arch-arrows">↓ typed adapters ↓</div>
+          <div class="arch-layer integration">
+            <div class="arch-layer-title">🔌 Integration Layer</div>
+            <div class="arch-components">
+              <div class="arch-chip">StripeAdapter</div>
+              <div class="arch-chip">GHLAdapter</div>
+              <div class="arch-chip">CCAdapter</div>
+              <div class="arch-chip">DataNormalizer</div>
+            </div>
+          </div>
+          <div class="arch-arrows">↓ async jobs ↓</div>
+          <div class="arch-layer queue">
+            <div class="arch-layer-title">📬 Queue System</div>
+            <div class="arch-components">
+              <div class="arch-chip">Redis / SQS</div>
+              <div class="arch-chip">RETRY_PAYMENT</div>
+              <div class="arch-chip">SYNC_GHL</div>
+              <div class="arch-chip">WEBHOOK_RETRY</div>
+              <div class="arch-chip">Dead-letter</div>
+            </div>
+          </div>
+          <div class="arch-arrows">↓ persistence ↓</div>
+          <div class="arch-layer data">
+            <div class="arch-layer-title">🗄 Data Layer</div>
+            <div class="arch-components">
+              <div class="arch-chip">PostgreSQL</div>
+              <div class="arch-chip">Redis cache</div>
+              <div class="arch-chip">Encrypted at rest</div>
+              <div class="arch-chip">HIPAA audit logs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Code snippets -->
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Webhook Handler — TypeScript</div>
+              <span class="badge badge-cyan">src/webhooks/stripe.ts</span>
+            </div>
+            <div class="card-body" style="padding:0">
+              <div class="code-block" style="border:none;border-radius:0 0 var(--r) var(--r)"><span class="kw">async</span> <span class="kw">function</span> <span class="fn">handleStripeWebhook</span>(
+  req: <span class="ty">Request</span>, res: <span class="ty">Response</span>
+): <span class="ty">Promise</span>&lt;<span class="kw">void</span>&gt; {
+
+  <span class="cm">// 1. Idempotency check — hash(source:eventId)</span>
+  <span class="kw">const</span> key = <span class="fn">hashEvent</span>(<span class="str">'stripe'</span>, event.id);
+  <span class="kw">if</span> (<span class="kw">await</span> <span class="fn">idempotency.has</span>(key)) {
+    <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">200</span>).<span class="fn">json</span>({ status: <span class="str">'already_processed'</span> });
+  }
+
+  <span class="cm">// 2. Route by event type</span>
+  <span class="kw">switch</span> (event.type) {
+    <span class="kw">case</span> <span class="str">'payment_intent.payment_failed'</span>:
+      <span class="kw">await</span> <span class="fn">initiateDunning</span>(event.data.object);
+      <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="str">'customer.subscription.updated'</span>:
+      <span class="kw">await</span> <span class="fn">syncSubscriptionState</span>(event.data.object);
+      <span class="kw">break</span>;
+  }
+
+  <span class="cm">// 3. Mark processed — TTL 24h</span>
+  <span class="kw">await</span> <span class="fn">idempotency.mark</span>(key);
+  res.<span class="fn">status</span>(<span class="num">200</span>).<span class="fn">json</span>({ status: <span class="str">'processed'</span> });
+}</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Dunning Retry Logic</div>
+              <span class="badge badge-purple">src/services/billing.ts</span>
+            </div>
+            <div class="card-body" style="padding:0">
+              <div class="code-block" style="border:none;border-radius:0 0 var(--r) var(--r)"><span class="cm">// Configurable retry schedule per plan</span>
+<span class="kw">const</span> RETRY_SCHEDULE: <span class="ty">number</span>[] = [<span class="num">24</span>, <span class="num">72</span>, <span class="num">168</span>]; <span class="cm">// hours</span>
+
+<span class="kw">async</span> <span class="kw">function</span> <span class="fn">processDunningAttempt</span>(
+  sub: <span class="ty">Subscription</span>, attempt: <span class="ty">number</span>
+): <span class="ty">Promise</span>&lt;<span class="ty">DunningResult</span>&gt; {
+
+  <span class="kw">const</span> result = <span class="kw">await</span> stripe.<span class="fn">retryPayment</span>(sub.stripeSubId);
+
+  <span class="kw">if</span> (result.success) {
+    <span class="kw">await</span> <span class="fn">transitionState</span>(sub.id, <span class="str">'RECOVERED'</span>);
+    <span class="kw">await</span> ghl.<span class="fn">triggerWorkflow</span>(sub.patientId, <span class="str">'payment-recovered'</span>);
+    <span class="kw">return</span> { recovered: <span class="kw">true</span> };
+  }
+
+  <span class="kw">if</span> (attempt >= RETRY_SCHEDULE.length) {
+    <span class="kw">await</span> <span class="fn">transitionState</span>(sub.id, <span class="str">'CANCELLED'</span>);
+    <span class="kw">return</span> { cancelled: <span class="kw">true</span> };
+  }
+
+  <span class="cm">// Schedule next retry via SQS delay queue</span>
+  <span class="kw">await</span> queue.<span class="fn">enqueue</span>(<span class="str">'RETRY_PAYMENT'</span>, {
+    subscriptionId: sub.id,
+    attempt: attempt + <span class="num">1</span>,
+    delayHours: RETRY_SCHEDULE[attempt]
+  });
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         TAB 6: EXECUTION PLAN
+    ══════════════════════════════════ -->
+    <div id="tab-execution" class="tab-pane">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Execution Plan</div>
+          <div class="page-subtitle">5-phase delivery roadmap · 6–8 week timeline</div>
+        </div>
+        <div class="flex gap-8 items-center">
+          <span class="badge badge-blue text-mono">Week 1–8 · 30+ hrs/wk</span>
+          <span class="badge badge-green">Phase 1 → Active</span>
+        </div>
+      </div>
+
+      <div class="timeline">
+
+        <!-- Phase 1 -->
+        <div class="timeline-item active-phase">
+          <div class="timeline-card">
+            <div class="timeline-phase-header">
+              <div>
+                <div class="timeline-phase-num">PHASE 01 · WEEK 1</div>
+                <div class="timeline-phase-title">Revenue Risk Audit</div>
+              </div>
+              <div class="flex gap-8 items-center">
+                <span class="badge badge-green">IN PROGRESS</span>
+                <span class="timeline-phase-duration">5 days</span>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-12">Map all Checkout Champ → GHL → Stripe data flows. Identify every gap where revenue leaks or data breaks.</div>
+            <div class="timeline-tasks">
+              <div class="timeline-task"><div class="task-check checked">✓</div>Audit existing webhook endpoints and failure modes</div>
+              <div class="timeline-task"><div class="task-check checked">✓</div>Map Stripe billing state vs. GHL contact state discrepancies</div>
+              <div class="timeline-task"><div class="task-check in-progress">→</div>Identify polling dependencies to replace with webhooks</div>
+              <div class="timeline-task"><div class="task-check"></div>Document failed payment gaps &amp; dunning blind spots</div>
+            </div>
+            <div class="deliverable-grid mt-12">
+              <div class="deliverable-chip">Architecture gap report</div>
+              <div class="deliverable-chip">Revenue leakage map</div>
+              <div class="deliverable-chip">Priority fix list</div>
+              <div class="deliverable-chip">Risk assessment</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="timeline-item upcoming">
+          <div class="timeline-card">
+            <div class="timeline-phase-header">
+              <div>
+                <div class="timeline-phase-num">PHASE 02 · WEEK 2–3</div>
+                <div class="timeline-phase-title">Middleware Architecture</div>
+              </div>
+              <div class="flex gap-8 items-center">
+                <span class="badge badge-gray">UPCOMING</span>
+                <span class="timeline-phase-duration">10 days</span>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-12">Build the central TypeScript middleware service — typed adapters for all three platforms, data normalization, event routing.</div>
+            <div class="timeline-tasks">
+              <div class="timeline-task"><div class="task-check"></div>Central Node.js/TypeScript middleware service</div>
+              <div class="timeline-task"><div class="task-check"></div>Typed API adapters: Stripe, GHL V2, Checkout Champ</div>
+              <div class="timeline-task"><div class="task-check"></div>Zod schema validation &amp; data normalizer</div>
+              <div class="timeline-task"><div class="task-check"></div>Structured logging (pino) + error classes</div>
+            </div>
+            <div class="deliverable-grid mt-12">
+              <div class="deliverable-chip">typed adapter layer</div>
+              <div class="deliverable-chip">Zod schemas</div>
+              <div class="deliverable-chip">Normalizer module</div>
+              <div class="deliverable-chip">Error taxonomy</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="timeline-item upcoming">
+          <div class="timeline-card">
+            <div class="timeline-phase-header">
+              <div>
+                <div class="timeline-phase-num">PHASE 03 · WEEK 3–4</div>
+                <div class="timeline-phase-title">Billing Engine Optimization</div>
+              </div>
+              <div class="flex gap-8 items-center">
+                <span class="badge badge-gray">UPCOMING</span>
+                <span class="timeline-phase-duration">10 days</span>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-12">Rebuild the subscription lifecycle as a proper state machine. Implement smart dunning with configurable retry schedules per plan.</div>
+            <div class="timeline-tasks">
+              <div class="timeline-task"><div class="task-check"></div>Subscription state machine (PENDING→ACTIVE→DUNNING→RECOVERED)</div>
+              <div class="timeline-task"><div class="task-check"></div>Smart dunning engine with exponential backoff</div>
+              <div class="timeline-task"><div class="task-check"></div>Partial refund &amp; chargeback handling</div>
+              <div class="timeline-task"><div class="task-check"></div>Gateway fallback logic on decline</div>
+            </div>
+            <div class="deliverable-grid mt-12">
+              <div class="deliverable-chip">State machine module</div>
+              <div class="deliverable-chip">Dunning engine</div>
+              <div class="deliverable-chip">Retry scheduler</div>
+              <div class="deliverable-chip">Chargeback handler</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="timeline-item upcoming">
+          <div class="timeline-card">
+            <div class="timeline-phase-header">
+              <div>
+                <div class="timeline-phase-num">PHASE 04 · WEEK 4–5</div>
+                <div class="timeline-phase-title">Webhook Infrastructure</div>
+              </div>
+              <div class="flex gap-8 items-center">
+                <span class="badge badge-gray">UPCOMING</span>
+                <span class="timeline-phase-duration">7 days</span>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-12">Replace all polling with reliable, idempotent webhook infrastructure. Dead-letter queue, replay system, and full observability.</div>
+            <div class="timeline-tasks">
+              <div class="timeline-task"><div class="task-check"></div>Idempotency store (Redis SET NX EX)</div>
+              <div class="timeline-task"><div class="task-check"></div>Dead-letter queue with alerting</div>
+              <div class="timeline-task"><div class="task-check"></div>Event replay system for missed events</div>
+              <div class="timeline-task"><div class="task-check"></div>Webhook signature verification (all platforms)</div>
+            </div>
+            <div class="deliverable-grid mt-12">
+              <div class="deliverable-chip">Idempotency layer</div>
+              <div class="deliverable-chip">Dead-letter queue</div>
+              <div class="deliverable-chip">Replay system</div>
+              <div class="deliverable-chip">Signature verifier</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 5 -->
+        <div class="timeline-item upcoming">
+          <div class="timeline-card">
+            <div class="timeline-phase-header">
+              <div>
+                <div class="timeline-phase-num">PHASE 05 · WEEK 6–8</div>
+                <div class="timeline-phase-title">Scaling &amp; Observability</div>
+              </div>
+              <div class="flex gap-8 items-center">
+                <span class="badge badge-gray">UPCOMING</span>
+                <span class="timeline-phase-duration">14 days</span>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-12">Deploy to AWS, add SQS delay queues for dunning schedules, structured observability, HIPAA-aware audit trail.</div>
+            <div class="timeline-tasks">
+              <div class="timeline-task"><div class="task-check"></div>AWS Lambda + SQS or ECS + ALB deployment</div>
+              <div class="timeline-task"><div class="task-check"></div>CloudWatch structured logging + alerting</div>
+              <div class="timeline-task"><div class="task-check"></div>HIPAA audit logs + encrypted at rest</div>
+              <div class="timeline-task"><div class="task-check"></div>Load testing (target: 10k events/min)</div>
+            </div>
+            <div class="deliverable-grid mt-12">
+              <div class="deliverable-chip">AWS infrastructure</div>
+              <div class="deliverable-chip">Observability stack</div>
+              <div class="deliverable-chip">HIPAA compliance</div>
+              <div class="deliverable-chip">Load test report</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   STATE — single source of truth
+═══════════════════════════════════════════════════════ */
+const STATE = {
+  activeTab: 'dashboard',
+  metrics: {
+    active: 2847,
+    failed: 43,
+    recovery: 68,
+    eps: 24.3,
+    pending: 0,
+    processed: 1204,
+    idm: 187,
+    recovered: 29
+  },
+  events: {
+    total: 0,
+    success: 0,
+    failed: 0,
+    updated: 0,
+    idm: 0
+  },
+  billing: {
+    state: 'ACTIVE',   // ACTIVE | FAILED | DUNNING | RECOVERED
+    attempt: 0,
+    inProgress: false
+  },
+  webhooks: {
+    total: 0,
+    lastEventId: null,
+    idmStore: [],
+    retryQueue: []
+  },
+  topbar: { eps: 0, queue: 0, errs: 0 },
+  spark: Array(14).fill(0).map(() => Math.floor(Math.random() * 80) + 20),
+  feedCount: 0
+};
+
+/* ═══════════════════════════════════════════════════════
+   UTILS
+═══════════════════════════════════════════════════════ */
+function uid()  { return Math.random().toString(36).slice(2, 10).toUpperCase(); }
+function now()  { return new Date().toTimeString().slice(0, 8); }
+function rnd(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+function el(id) { return document.getElementById(id); }
+
+/** Set element text safely */
+function setText(id, val) {
+  const e = el(id);
+  if (e) e.textContent = val;
+}
+
+/** Animate counter change with brief flash */
+function flashEl(id, color = 'var(--blue)') {
+  const e = el(id);
+  if (!e) return;
+  const prev = e.style.color;
+  e.style.color = color;
+  setTimeout(() => e.style.color = prev, 600);
+}
+
+/* ═══════════════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════════════ */
+function switchTab(tabId, btn) {
+  // Hide all
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  // Show target
+  const pane = el('tab-' + tabId);
+  if (pane) pane.classList.add('active');
+  if (btn) btn.classList.add('active');
+  STATE.activeTab = tabId;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOG HELPERS
+═══════════════════════════════════════════════════════ */
+function appendLog(containerId, { type = 'info', eventType = '', msg = '' }) {
+  const container = el(containerId);
+  if (!container) return;
+
+  const typeColors = {
+    success: 'var(--green)',
+    error:   'var(--red)',
+    warn:    'var(--yellow)',
+    info:    'var(--blue)',
+    dim:     'var(--text3)'
+  };
+
+  const typeLabels = {
+    success: 'SUCCESS',
+    error:   'ERROR  ',
+    warn:    'WARN   ',
+    info:    'INFO   ',
+    dim:     'SYSTEM '
+  };
+
+  const div = document.createElement('div');
+  div.className = `log-entry ${type}`;
+  div.innerHTML = `
+    <span class="log-time">${now()}</span>
+    <span class="log-type" style="color:${typeColors[type] || 'var(--text3)'}">
+      ${typeLabels[type] || 'INFO   '}
+    </span>
+    <span class="log-msg">${msg}</span>
+  `;
+  container.prepend(div);
+
+  // Keep max 60 entries
+  while (container.children.length > 60) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD — LIVE ACTIVITY FEED
+═══════════════════════════════════════════════════════ */
+const ACTIVITY_EVENTS = [
+  { event: 'Subscription activated', source: 'onboarding', type: 'success' },
+  { event: 'Payment retry succeeded', source: 'dunning', type: 'success' },
+  { event: 'Patient onboarded via CC webhook', source: 'checkout_champ', type: 'success' },
+  { event: 'GHL contact synced', source: 'ghl_sync', type: 'success' },
+  { event: 'Invoice payment failed', source: 'stripe', type: 'error' },
+  { event: 'Webhook duplicate blocked', source: 'idempotency', type: 'warn' },
+  { event: 'Subscription state → DUNNING', source: 'billing', type: 'warn' },
+  { event: 'Retry job queued (T+24h)', source: 'queue', type: 'info' },
+  { event: 'RETRY_PAYMENT job processed', source: 'worker', type: 'success' },
+  { event: 'Dead-letter queue: 0 pending', source: 'queue', type: 'info' },
+  { event: 'Stripe webhook verified ✓', source: 'security', type: 'info' },
+  { event: 'Chargeback dispute opened', source: 'stripe', type: 'warn' },
+];
+
+function addActivityEntry() {
+  const feed = el('activity-feed');
+  if (!feed) return;
+
+  const item = ACTIVITY_EVENTS[rnd(0, ACTIVITY_EVENTS.length - 1)];
+  STATE.feedCount++;
+
+  const typeColor = {
+    success: 'var(--green)',
+    error: 'var(--red)',
+    warn: 'var(--yellow)',
+    info: 'var(--blue)'
+  }[item.type] || 'var(--text3)';
+
+  const div = document.createElement('div');
+  div.className = 'activity-row';
+  div.style.animation = 'logIn 0.3s ease';
+  div.innerHTML = `
+    <span style="width:7px;height:7px;border-radius:50%;background:${typeColor};flex-shrink:0;display:inline-block;box-shadow:0 0 4px ${typeColor}"></span>
+    <span class="activity-event">${item.event}</span>
+    <span class="activity-source">${item.source}</span>
+    <span class="activity-time">${now()}</span>
+  `;
+  feed.prepend(div);
+  while (feed.children.length > 18) feed.removeChild(feed.lastChild);
+
+  setText('feed-count', STATE.feedCount + ' events');
+}
+
+/* ═══════════════════════════════════════════════════════
+   SPARKLINE
+═══════════════════════════════════════════════════════ */
+function updateSparkline() {
+  const container = el('sparkline');
+  if (!container) return;
+  container.innerHTML = '';
+  const max = Math.max(...STATE.spark, 1);
+  let total = STATE.spark.reduce((a, b) => a + b, 0);
+  STATE.spark.forEach((v, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'spark-bar';
+    bar.style.height = ((v / max) * 34) + 'px';
+    bar.style.background = i === STATE.spark.length - 1
+      ? 'var(--cyan)' : 'var(--blue)';
+    bar.style.opacity = 0.5 + (i / STATE.spark.length) * 0.5;
+    container.appendChild(bar);
+  });
+  setText('spark-total', total.toLocaleString() + ' total');
+}
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD — LIVE METRIC UPDATES
+═══════════════════════════════════════════════════════ */
+function tickMetrics() {
+  // Drift metrics slightly
+  STATE.metrics.active   += rnd(-1, 3);
+  STATE.metrics.eps       = parseFloat((STATE.metrics.eps + (Math.random() - 0.48) * 2).toFixed(1));
+  STATE.metrics.processed += rnd(0, 4);
+  STATE.metrics.idm       += rnd(0, 1);
+
+  // Clamp
+  STATE.metrics.active   = Math.max(2000, STATE.metrics.active);
+  STATE.metrics.eps      = Math.max(8, Math.min(60, STATE.metrics.eps));
+
+  // Update DOM
+  setText('m-active',    STATE.metrics.active.toLocaleString());
+  setText('m-failed',    STATE.metrics.failed);
+  setText('m-recovery',  STATE.metrics.recovery + '%');
+  setText('m-eps',       STATE.metrics.eps.toFixed(1));
+  setText('m-pending',   STATE.metrics.pending);
+  setText('m-processed', STATE.metrics.processed.toLocaleString());
+  setText('m-idm',       STATE.metrics.idm.toLocaleString());
+  setText('m-recovered', STATE.metrics.recovered);
+
+  // Topbar
+  const eps = rnd(18, 42);
+  setText('stat-eps', eps);
+  setText('stat-queue', STATE.metrics.pending);
+
+  // Health latencies (small drift)
+  setText('h-stripe', rnd(38, 75) + 'ms');
+  setText('h-ghl',    rnd(90, 145) + 'ms');
+  setText('h-cc',     rnd(55, 100) + 'ms');
+  setText('h-redis',  rnd(2, 6) + 'ms');
+  setText('h-wh',     rnd(12, 28) + 'ms');
+
+  // Sparkline
+  STATE.spark.shift();
+  STATE.spark.push(rnd(15, 100));
+  updateSparkline();
+
+  // Occasionally add activity
+  if (Math.random() > 0.4) addActivityEntry();
+}
+
+/* ═══════════════════════════════════════════════════════
+   BILLING ENGINE
+═══════════════════════════════════════════════════════ */
+
+/** Set lifecycle visual state */
+function setLifecycleNode(node, stateClass) {
+  const circle = el('lc-circle-' + node);
+  if (circle) {
+    circle.className = 'lifecycle-circle ' + stateClass;
+  }
+  const parent = el('lc-' + node);
+  if (parent) parent.classList.add('active');
+}
+
+function resetLifecycle() {
+  ['active','failed','dunning','recovered'].forEach(n => {
+    const c = el('lc-circle-' + n);
+    if (c) c.className = 'lifecycle-circle';
+    const p = el('lc-' + n);
+    if (p) p.classList.remove('active');
+  });
+  ['lc-conn-1','lc-conn-2','lc-conn-3'].forEach(id => {
+    const e = el(id);
+    if (e) e.style.width = '0%';
+  });
+  [0,1,2,3].forEach(i => {
+    const r = el('dun-' + i);
+    if (r) r.className = 'dunning-row';
+    const rr = el('dun-' + i + '-r');
+    if (rr) { rr.textContent = i === 0 ? '→ PAST_DUE' : '—'; rr.style.color = 'var(--text3)'; }
+  });
+}
+
+function triggerFailure() {
+  if (STATE.billing.inProgress) return;
+  STATE.billing.inProgress = true;
+  STATE.billing.attempt = 0;
+
+  resetLifecycle();
+  setLifecycleNode('active', 'active-state');
+
+  const btn = el('btn-fail');
+  const retryBtn = el('btn-retry');
+  if (btn) btn.disabled = true;
+  if (retryBtn) retryBtn.disabled = true;
+
+  // Set Active state
+  appendLog('billing-log', { type: 'info', msg: '<b>Subscription ID sub_88742</b> · billing cycle running' });
+  el('lifecycle-status').textContent = 'ACTIVE';
+  el('lifecycle-status').className = 'badge badge-green';
+  el('lc-progress-label').textContent = 'State: ACTIVE · processing payment...';
+
+  setTimeout(() => {
+    // Animate connector 1
+    el('lc-conn-1').style.width = '100%';
+    el('lc-conn-1').parentElement.style.background = 'var(--red)';
+
+    setTimeout(() => {
+      // Move to FAILED
+      setLifecycleNode('active', '');
+      setLifecycleNode('failed', 'error-state');
+      el('lifecycle-status').textContent = 'FAILED';
+      el('lifecycle-status').className = 'badge badge-red';
+      el('lc-progress').style.width = '50%';
+      el('lc-progress').style.background = 'var(--red)';
+      el('lc-progress-label').textContent = 'State: FAILED · error: card_declined';
+
+      // Update dunning row 0
+      el('dun-0').className = 'dunning-row active-row';
+      el('dun-0-r').textContent = '✗ card_declined';
+      el('dun-0-r').style.color = 'var(--red)';
+
+      STATE.metrics.failed++;
+      setText('m-failed', STATE.metrics.failed);
+      setText('badge-failed', STATE.metrics.failed);
+
+      appendLog('billing-log', { type: 'error', msg: '<b>payment_intent.payment_failed</b> · code: card_declined · initiating dunning' });
+      appendLog('billing-log', { type: 'info',  msg: 'Dunning schedule: T+24h, T+72h, T+168h · max 3 attempts' });
+      appendLog('billing-log', { type: 'info',  msg: 'RETRY_PAYMENT job enqueued · priority: HIGH' });
+
+      STATE.billing.state = 'FAILED';
+      STATE.billing.inProgress = false;
+      if (retryBtn) retryBtn.disabled = false;
+    }, 600);
+  }, 800);
+}
+
+async function runRetryCycle() {
+  if (STATE.billing.inProgress || STATE.billing.state !== 'FAILED') return;
+  STATE.billing.inProgress = true;
+
+  const retryBtn = el('btn-retry');
+  const failBtn  = el('btn-fail');
+  if (retryBtn) { retryBtn.disabled = true; retryBtn.innerHTML = '<span class="spinner"></span> Retrying...'; }
+  if (failBtn)  failBtn.disabled = true;
+
+  // Move to DUNNING
+  setLifecycleNode('failed', '');
+  el('lc-conn-2').style.width = '100%';
+  el('lc-conn-2').parentElement.style.background = 'var(--yellow)';
+  setLifecycleNode('dunning', 'warn-state');
+
+  el('lifecycle-status').textContent = 'DUNNING';
+  el('lifecycle-status').className = 'badge badge-yellow';
+  el('lc-progress').style.width = '75%';
+  el('lc-progress').style.background = 'var(--yellow)';
+  el('lc-progress-label').textContent = 'State: DUNNING · running retry schedule...';
+
+  setText('dunning-attempt-badge', '1 / 3');
+  setText('dun-1-r', '⟳ attempting...');
+  el('dun-1').className = 'dunning-row active-row';
+
+  appendLog('billing-log', { type: 'warn', msg: 'Attempt 1/3 · T+24h · retrying Stripe payment...' });
+
+  await wait(1400);
+
+  // Attempt 1 fails
+  setText('dun-1-r', '✗ insufficient_funds');
+  el('dun-1-r').style.color = 'var(--red)';
+  el('dun-1').className = 'dunning-row done-row';
+  appendLog('billing-log', { type: 'error', msg: 'Attempt 1 failed · error: insufficient_funds · next retry T+72h' });
+
+  await wait(1000);
+  setText('dunning-attempt-badge', '2 / 3');
+  setText('dun-2-r', '⟳ attempting...');
+  el('dun-2').className = 'dunning-row active-row';
+  appendLog('billing-log', { type: 'warn', msg: 'Attempt 2/3 · T+72h · trying alternate payment method...' });
+
+  await wait(1600);
+
+  // Attempt 2 fails
+  setText('dun-2-r', '✗ do_not_honor');
+  el('dun-2-r').style.color = 'var(--red)';
+  el('dun-2').className = 'dunning-row done-row';
+  appendLog('billing-log', { type: 'error', msg: 'Attempt 2 failed · error: do_not_honor' });
+
+  await wait(1000);
+  setText('dunning-attempt-badge', '3 / 3');
+  setText('dun-3-r', '⟳ final attempt...');
+  el('dun-3').className = 'dunning-row active-row';
+  appendLog('billing-log', { type: 'warn', msg: 'Attempt 3/3 · T+7d · FINAL ATTEMPT...' });
+
+  await wait(2000);
+
+  // Attempt 3 SUCCEEDS (40% recovery simulation)
+  setText('dun-3-r', '✓ recovered!');
+  el('dun-3-r').style.color = 'var(--green)';
+  el('dun-3').className = 'dunning-row done-row';
+
+  // Move to RECOVERED
+  el('lc-conn-3').style.width = '100%';
+  el('lc-conn-3').parentElement.style.background = 'var(--green)';
+  setLifecycleNode('dunning', '');
+  setLifecycleNode('recovered', 'success-state');
+
+  el('lifecycle-status').textContent = 'RECOVERED';
+  el('lifecycle-status').className = 'badge badge-green';
+  el('lc-progress').style.width = '100%';
+  el('lc-progress').style.background = 'var(--green)';
+  el('lc-progress-label').textContent = 'State: RECOVERED · payment captured · GHL workflow triggered';
+
+  STATE.metrics.recovered++;
+  STATE.metrics.failed = Math.max(0, STATE.metrics.failed - 1);
+  setText('m-failed', STATE.metrics.failed);
+  setText('badge-failed', STATE.metrics.failed);
+  setText('m-recovered', STATE.metrics.recovered);
+
+  appendLog('billing-log', { type: 'success', msg: '✓ <b>Payment recovered!</b> · $79.99 captured · subscription → ACTIVE' });
+  appendLog('billing-log', { type: 'success', msg: 'GHL workflow triggered: payment-recovery-notification' });
+  appendLog('billing-log', { type: 'info',    msg: 'Dunning state reset · next billing cycle: T+30d' });
+
+  STATE.billing.state = 'RECOVERED';
+  STATE.billing.inProgress = false;
+
+  if (retryBtn) { retryBtn.disabled = false; retryBtn.innerHTML = '↻ Run Retry Cycle'; }
+  if (failBtn)  failBtn.disabled = false;
+}
+
+function clearBillingLog() {
+  const log = el('billing-log');
+  if (log) log.innerHTML = '';
+}
+
+/* ═══════════════════════════════════════════════════════
+   WEBHOOKS
+═══════════════════════════════════════════════════════ */
+function hashSim(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+  return 'sha256:' + Math.abs(h).toString(16).padStart(8, '0') + '...';
+}
+
+function sendWebhook(eventType) {
+  const eventId = 'evt_' + uid();
+  const key = hashSim('stripe:' + eventId);
+
+  STATE.webhooks.total++;
+  STATE.events.total++;
+  STATE.webhooks.lastEventId = eventId;
+
+  const typeMap = {
+    payment_success:      { label: 'payment_success',      cls: 'success', color: 'badge-green' },
+    payment_failed:       { label: 'payment_failed',       cls: 'error',   color: 'badge-red' },
+    subscription_updated: { label: 'subscription_updated', cls: 'info',    color: 'badge-blue' }
+  };
+  const t = typeMap[eventType] || typeMap.payment_success;
+
+  // Increment counters
+  if (eventType === 'payment_success')      STATE.events.success++;
+  if (eventType === 'payment_failed')       STATE.events.failed++;
+  if (eventType === 'subscription_updated') STATE.events.updated++;
+
+  setText('ec-success', STATE.events.success);
+  setText('ec-failed',  STATE.events.failed);
+  setText('ec-updated', STATE.events.updated);
+  setText('wh-count',   STATE.webhooks.total + ' total');
+  setText('badge-events', STATE.events.total);
+
+  // Add to webhook log
+  appendLog('webhook-log', {
+    type: t.cls,
+    msg: `<b>${t.label}</b> · eventId: <span style="color:var(--cyan)">${eventId}</span> · key: ${key.slice(0,22)}...`
+  });
+
+  // Add to idempotency store
+  addIdmKey(key, eventId, 'miss');
+
+  // If payment_failed, add to retry queue
+  if (eventType === 'payment_failed') {
+    addRetryJob(eventId);
+    STATE.metrics.failed++;
+    setText('m-failed', STATE.metrics.failed);
+    setText('badge-failed', STATE.metrics.failed);
+  }
+}
+
+function sendDuplicate() {
+  if (!STATE.webhooks.lastEventId) {
+    // Send a fresh one first
+    sendWebhook('payment_success');
+    setTimeout(sendDuplicate, 400);
+    return;
+  }
+
+  const eventId = STATE.webhooks.lastEventId;
+  const key = hashSim('stripe:' + eventId);
+
+  STATE.events.idm++;
+  STATE.metrics.idm++;
+  setText('ec-idm', STATE.events.idm);
+  setText('m-idm', STATE.metrics.idm);
+
+  appendLog('webhook-log', {
+    type: 'warn',
+    msg: `<b>DUPLICATE BLOCKED</b> · eventId: <span style="color:var(--yellow)">${eventId}</span> → 200 already_processed`
+  });
+
+  // Mark as hit in idm store
+  const store = el('idm-store');
+  if (store && store.firstChild) {
+    store.firstChild.classList.add('hit');
+    const s = store.firstChild.querySelector('.idm-status');
+    if (s) s.innerHTML = '<span class="badge badge-yellow">HIT</span>';
+  }
+}
+
+function addIdmKey(key, eventId, status) {
+  const store = el('idm-store');
+  if (!store) return;
+  const div = document.createElement('div');
+  div.className = 'idm-key ' + (status === 'hit' ? 'hit' : 'miss');
+  div.innerHTML = `
+    <span class="sdot ${status === 'hit' ? 'yellow' : 'green'}"></span>
+    <span class="idm-hash">${key} · evt: ${eventId}</span>
+    <span class="idm-status">${status === 'hit'
+      ? '<span class="badge badge-yellow">HIT</span>'
+      : '<span class="badge badge-green">NEW</span>'}</span>
+  `;
+  store.prepend(div);
+  while (store.children.length > 10) store.removeChild(store.lastChild);
+}
+
+function addRetryJob(eventId) {
+  STATE.metrics.pending++;
+  setText('m-pending', STATE.metrics.pending);
+  setText('stat-queue', STATE.metrics.pending);
+
+  const list = el('retry-queue-list');
+  if (!list) return;
+
+  const delays = ['T+24h', 'T+72h', 'T+168h'];
+  const delay  = delays[rnd(0, 2)];
+
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;
+    background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);border-radius:5px;
+    font-family:var(--font-mono);font-size:10px;animation:logIn 0.3s ease;`;
+  div.innerHTML = `
+    <span style="color:var(--text3)">RETRY_PAYMENT</span>
+    <span style="color:var(--cyan)">${eventId}</span>
+    <span class="badge badge-yellow">${delay}</span>
+  `;
+  list.prepend(div);
+
+  setText('retry-q-size', list.children.length + ' jobs');
+  while (list.children.length > 5) list.removeChild(list.lastChild);
+
+  // Auto-dequeue after 4s
+  setTimeout(() => {
+    if (div.parentElement) div.parentElement.removeChild(div);
+    STATE.metrics.pending = Math.max(0, STATE.metrics.pending - 1);
+    setText('m-pending', STATE.metrics.pending);
+    setText('stat-queue', STATE.metrics.pending);
+    setText('retry-q-size', (list.children.length) + ' jobs');
+  }, 4000);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INTEGRATIONS
+═══════════════════════════════════════════════════════ */
+async function runIntegrationFlow() {
+  const btn = el('btn-sync');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Simulating...'; }
+
+  const statusBadge = el('int-status-badge');
+
+  const flash = (id, cls) => {
+    const e = el(id);
+    if (e) { e.className = 'int-block ' + cls; }
+  };
+
+  const setArr = (id, cls) => {
+    const e = el(id);
+    if (e) e.className = 'flow-arrow ' + cls;
+  };
+
+  const log = (type, msg) => appendLog('int-log', { type, msg });
+
+  // Reset
+  ['int-cc','int-mw','int-stripe','int-ghl'].forEach(id => {
+    const e = el(id); if (e) e.className = 'int-block';
+  });
+  ['arr-1','arr-2'].forEach(id => { const e = el(id); if(e) e.className='flow-arrow'; });
+
+  statusBadge.textContent = 'RUNNING';
+  statusBadge.className = 'badge badge-blue';
+
+  // Step 1: Checkout Champ order webhook received
+  flash('int-cc', 'pulsing');
+  log('info', '<b>Checkout Champ</b> · order.created webhook received · orderId: CC-2024-88742');
+  await wait(900);
+
+  // Step 2: Middleware processes
+  setArr('arr-1', 'active');
+  flash('int-cc', '');
+  flash('int-mw', 'pulsing');
+  log('info', '<b>Middleware</b> · normalizing CC schema → internal NormalizedPatientData');
+  log('info', 'Mapping productId → planId: prod_ed_monthly → mens-health-monthly');
+  await wait(1000);
+
+  // Step 3: Create Stripe customer
+  setArr('arr-2', 'active');
+  flash('int-mw', '');
+  flash('int-stripe', 'pulsing');
+  log('info', '<b>Stripe</b> · POST /v1/customers · creating customer...');
+  await wait(900);
+
+  log('success', '<b>Stripe</b> · customer created: cus_Pq8k1mN3xTzL7w · 58ms');
+  log('info',    '<b>Stripe</b> · POST /v1/subscriptions · activating plan...');
+  await wait(800);
+
+  flash('int-stripe', 'success-flash');
+  log('success', '<b>Stripe</b> · subscription created: sub_1OqL2LKZ · ACTIVE · 71ms');
+  await wait(600);
+
+  // Step 4: GHL sync
+  flash('int-stripe', '');
+  flash('int-ghl', 'pulsing');
+  log('info', '<b>GoHighLevel</b> · POST /contacts · syncing patient record...');
+  await wait(1100);
+
+  flash('int-ghl', 'success-flash');
+  log('success', '<b>GoHighLevel</b> · contact created: ghl_4f8a2b1c · tag: subscription-active · 112ms');
+  await wait(500);
+
+  // Done
+  flash('int-mw', 'success-flash');
+  setArr('arr-1', 'success-arrow');
+  setArr('arr-2', 'success-arrow');
+  statusBadge.textContent = 'SYNC COMPLETE';
+  statusBadge.className = 'badge badge-green';
+  log('success', '<b>Full sync completed</b> · patient onboarded across all 3 platforms · total: ~390ms');
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '▶ Simulate Full Sync'; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INITIALIZATION & INTERVALS
+═══════════════════════════════════════════════════════ */
+function init() {
+  // Build initial sparkline
+  updateSparkline();
+
+  // Add a few initial activity entries
+  for (let i = 0; i < 5; i++) {
+    setTimeout(addActivityEntry, i * 200);
+  }
+
+  // Add initial billing log entry
+  setTimeout(() => {
+    appendLog('billing-log', {
+      type: 'info',
+      msg: 'Billing engine initialized · 2,847 active subscriptions · dunning: 43 in queue'
+    });
+    setLifecycleNode('active', 'active-state');
+    el('lc-' + 'active')?.classList.add('active');
+  }, 100);
+
+  // Seed webhook log
+  setTimeout(() => {
+    appendLog('webhook-log', { type: 'dim',  msg: 'Webhook processor initialized · idempotency TTL: 24h' });
+    appendLog('webhook-log', { type: 'info', msg: 'Listening: /webhooks/stripe, /webhooks/checkoutchamp, /webhooks/ghl' });
+  }, 150);
+
+  // Seed integration log
+  setTimeout(() => {
+    appendLog('int-log', { type: 'dim', msg: 'Integration layer ready · 3 adapters loaded' });
+  }, 200);
+
+  // Live ticks
+  setInterval(tickMetrics, 3000);
+
+  // Auto webhook events in background
+  setInterval(() => {
+    if (STATE.activeTab === 'webhooks' || STATE.activeTab === 'dashboard') {
+      const types = ['payment_success', 'subscription_updated'];
+      const t = types[rnd(0, types.length - 1)];
+      STATE.webhooks.total++;
+      STATE.events.total++;
+      if (t === 'payment_success') STATE.events.success++;
+      else STATE.events.updated++;
+      setText('ec-success', STATE.events.success);
+      setText('ec-updated', STATE.events.updated);
+      setText('wh-count',  STATE.webhooks.total + ' total');
+      setText('badge-events', STATE.events.total);
+    }
+  }, 5000);
+}
+
+// Boot
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
